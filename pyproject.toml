@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "tinder"
+version = "0.1.0"
+description = ""
+authors = ["Alex Remnev <alexremnev2@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.103.2"
+uvicorn = {extras = ["standart"], version = "^0.23.2"}
+sqlalchemy = "^2.0.21"
+psycopg2 = "^2.9.8"
+alembic = "^1.12.0"
+
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.4.0"
+flake8 = "^6.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.flake8]
+max-line-length = 130
