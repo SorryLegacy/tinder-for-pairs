@@ -1,7 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
 
-app = FastAPI()
+app = FastAPI(
+    title="Tinder app for pairs",
+    version="0.0.1",
+)
 
 
 @app.get("/")
