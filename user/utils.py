@@ -11,7 +11,7 @@ def sha256_hash(string: str) -> str:
     """
     Hash string in sha256
     """
-    return hashlib.sha256(string).hexdigest()
+    return hashlib.sha256(string.encode()).hexdigest()
 
 
 def compare_password(password: str, hashed_password: str) -> bool:
@@ -29,7 +29,7 @@ def create_access_token(object: Union[str, Any], expires_delta: int = None) -> s
         expires_delta = datetime.utcnow() + expires_delta
     else:
         expires_delta = datetime.utcnow() + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+            minutes=int(settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
 
     to_encode = {"exp": expires_delta, "sub": str(object)}
@@ -45,7 +45,7 @@ def create_refresh_token(subject: Union[str, Any], expires_delta: int = None) ->
         expires_delta = datetime.utcnow() + expires_delta
     else:
         expires_delta = datetime.utcnow() + timedelta(
-            minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES
+            minutes=int(settings.REFRESH_TOKEN_EXPIRE_MINUTES)
         )
 
     to_encode = {"exp": expires_delta, "sub": str(subject)}

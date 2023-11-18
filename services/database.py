@@ -22,3 +22,8 @@ def create_session():
         yield ss
     finally:
         ss.close()
+
+
+async def get_db():
+    with create_session() as session:
+        yield session
