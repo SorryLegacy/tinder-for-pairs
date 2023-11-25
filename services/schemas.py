@@ -1,11 +1,6 @@
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BaseShemasUUID(BaseModel):
-    uuid: UUID
-
-
-class TokenResposnse(BaseModel):
-    access_token: str
-    refresh_token: str
+    uuid: UUID = Field(alias="id")

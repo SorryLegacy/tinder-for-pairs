@@ -1,7 +1,9 @@
 from contextlib import contextmanager
+from typing import Annotated, Any
 
 from config import settings
 
+from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -27,3 +29,6 @@ def create_session():
 async def get_db():
     with create_session() as session:
         yield session
+
+
+db_depends = Annotated[Any, Depends(get_db)]

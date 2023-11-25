@@ -1,7 +1,8 @@
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, model_validator, field_validator
+from fastapi import HTTPException, status
+from pydantic import BaseModel, model_validator, field_validator, ConfigDict
 
 from .utils import sha256_hash
 from services.schemas import BaseShemasUUID
@@ -40,6 +41,8 @@ class UserRegister(UserAuth):
 
 
 class UserNoPassword(BaseShemasUUID):
+    model_config = ConfigDict(from_attributes=True)
+
     name: str
     username: str
     date_created: datetime
@@ -48,5 +51,22 @@ class UserNoPassword(BaseShemasUUID):
 class UserDB(UserNoPassword):
     password: str
 
-    class Config:
-        orm_mode = True
+
+class SignaturePayload(BaseModel):
+    exp: int
+    sub: str
+
+    @field_validator("exp")
+    def validate_expartion_data(cls, exp: int) -> int:
+        if datetime.fromtimestamp(exp) < datetime.now():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return exp
+
+
+class TokenResposnse(BaseModel):
+    access_token: str
+    refresh_token: str
