@@ -1,14 +1,17 @@
+from config import settings
 from services.database import db_depends
 
 from .models import User
 from .utils import create_access_token, create_refresh_token, compare_password
-from .schemas import UserRegister, TokenResposnse, UserNoPassword
+from .schemas import UserRegister, TokenResposnse, UserNoPassword, SignaturePayload
 from .deps import get_current_user
 
 from sqlalchemy import exists, select
 
-from fastapi import status, HTTPException, APIRouter, Depends
-from fastapi.security import OAuth2PasswordRequestForm
+from jose import jwt, JWTError
+from pydantic import ValidationError
+from fastapi import status, HTTPException, APIRouter, Depends, Request, Response
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 
 
 router = APIRouter()
@@ -43,7 +46,7 @@ async def create_user(data: UserRegister, db: db_depends) -> TokenResposnse:
 
 @router.post("/login", summary="Login in system", response_model=TokenResposnse)
 async def login(
-    db: db_depends, data: OAuth2PasswordRequestForm = Depends()
+    db: db_depends, response: Response, data: OAuth2PasswordRequestForm = Depends()
 ) -> TokenResposnse:
     """
     Login in system
@@ -60,14 +63,49 @@ async def login(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid password"
             )
 
-        response = {
+        response_dict = {
             "access_token": create_access_token(data.username),
             "refresh_token": create_refresh_token(data.username),
         }
-        return response
+        response.set_cookie(
+            key="refresh_token", value=response_dict.get("refresh_token"), httponly=True
+        )
+        return response_dict
     except Exception as e:
         print(e)
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post(
+    "/refresh_token", summary="Refresh JWT token", response_model=TokenResposnse
+)
+async def refresh_token(
+    db: db_depends,
+    request: Request,
+    has_token: OAuth2PasswordBearer(tokenUrl="/login") = Depends(),  # noqa f722
+) -> TokenResposnse:
+    """
+    Refresh jwt token
+    """
+    if refresh_token := request.cookies.get("refresh_token"):
+        try:
+            payload = jwt.decode(
+                refresh_token, settings.JWT_REFRESH_KEY, algorithms=settings.ALGORITHM
+            )
+            signature = SignaturePayload(**payload)
+        except (JWTError, ValidationError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Not correct token"
+            )
+        response = {
+            "access_token": create_access_token(signature.sub),
+            "refresh_token": refresh_token,
+        }
+        return response
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User is not authenticated"
+        )
 
 
 @router.get("/me", summary="Info about current User", response_model=UserNoPassword)

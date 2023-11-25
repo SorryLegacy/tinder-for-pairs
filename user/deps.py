@@ -37,5 +37,4 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Could not find user"
         )
-    print(user)
     return UserNoPassword.model_validate(user)
