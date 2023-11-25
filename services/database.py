@@ -10,7 +10,8 @@ from sqlalchemy.ext.declarative import declarative_base
 
 POSTGRES_URL = f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.DATABASE_PORT}/{settings.POSTGRES_DB}"  # noqa
 
-engine = create_engine(POSTGRES_URL, echo=True)
+# echo = True if needs log from every request
+engine = create_engine(POSTGRES_URL)
 
 session = sessionmaker(autoflush=True, autocommit=False, bind=engine)
 
