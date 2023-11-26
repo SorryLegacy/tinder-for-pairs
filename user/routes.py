@@ -2,16 +2,38 @@ from config import settings
 from services.database import db_depends
 
 from .models import User
-from .utils import create_access_token, create_refresh_token, compare_password
-from .schemas import UserRegister, TokenResposnse, UserNoPassword, SignaturePayload
-from .deps import get_current_user
+from .utils import (
+    create_access_token,
+    create_refresh_token,
+    compare_password,
+    generate_random_string,
+    sha256_hash,
+    send_email,
+)
+from .schemas import (
+    UserRegister,
+    TokenResposnse,
+    UserNoPassword,
+    UserAuth,
+    SignaturePayload,
+    ListUsers,
+    UserCreateByAdmin,
+)
+from .deps import get_current_user, admin_only, verify_token
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, select, or_
 
 from jose import jwt, JWTError
 from pydantic import ValidationError
-from fastapi import status, HTTPException, APIRouter, Depends, Request, Response
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi import (
+    status,
+    HTTPException,
+    APIRouter,
+    Depends,
+    Request,
+    Response,
+    BackgroundTasks,
+)
 
 
 router = APIRouter()
@@ -25,7 +47,11 @@ async def create_user(data: UserRegister, db: db_depends) -> TokenResposnse:
     View to create user and add tokens
     """
     try:
-        query = select(exists().where(User.username == data.username))
+        query = select(
+            exists().where(
+                or_(User.username == data.username, User.email == data.email)
+            )
+        )
         if db.execute(query).scalar():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -45,14 +71,14 @@ async def create_user(data: UserRegister, db: db_depends) -> TokenResposnse:
 
 
 @router.post("/login", summary="Login in system", response_model=TokenResposnse)
-async def login(
-    db: db_depends, response: Response, data: OAuth2PasswordRequestForm = Depends()
-) -> TokenResposnse:
+async def login(db: db_depends, response: Response, data: UserAuth) -> TokenResposnse:
     """
     Login in system
     """
     try:
-        query = select(User).where(User.username == data.username)
+        query = select(User).where(
+            or_(User.username == data.login, User.email == data.login)
+        )
         user = db.execute(query).scalar()
         if not user:
             raise HTTPException(
@@ -62,10 +88,9 @@ async def login(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid password"
             )
-
         response_dict = {
-            "access_token": create_access_token(data.username),
-            "refresh_token": create_refresh_token(data.username),
+            "access_token": create_access_token(data.login),
+            "refresh_token": create_refresh_token(data.login),
         }
         response.set_cookie(
             key="refresh_token", value=response_dict.get("refresh_token"), httponly=True
@@ -80,9 +105,8 @@ async def login(
     "/refresh_token", summary="Refresh JWT token", response_model=TokenResposnse
 )
 async def refresh_token(
-    db: db_depends,
     request: Request,
-    has_token: OAuth2PasswordBearer(tokenUrl="/login") = Depends(),  # noqa f722
+    has_token: SignaturePayload = Depends(verify_token),  # noqa f722
 ) -> TokenResposnse:
     """
     Refresh jwt token
@@ -111,3 +135,50 @@ async def refresh_token(
 @router.get("/me", summary="Info about current User", response_model=UserNoPassword)
 async def me(user: UserNoPassword = Depends(get_current_user)):
     return user
+
+
+@router.get(
+    "/api/v1/users",
+    summary="Admin only; return list of users",
+    response_model=ListUsers,
+)
+async def list_users(
+    db: db_depends, user: UserNoPassword = Depends(admin_only)
+) -> ListUsers:
+    users = [
+        value for (value,) in db.execute(select(User)).fetchall()
+    ]  # TODO probably fix
+    return ListUsers.model_validate({"users": users})
+
+
+@router.post(
+    "/api/v1/users", summary="Admin only; create user", response_model=UserNoPassword
+)
+async def create_user_admin(
+    user_data: UserCreateByAdmin,
+    db: db_depends,
+    backgroud_task: BackgroundTasks,
+    user: UserNoPassword = Depends(admin_only),
+) -> UserNoPassword:
+    query = select(
+        exists().where(
+            or_(User.username == user_data.username, User.email == user_data.email)
+        )
+    )
+    if db.execute(query).scalar():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with sush email/username exists",
+        )
+    password = sha256_hash(generate_random_string())
+    new_user = User(
+        email=user_data.email,
+        password=password,
+        is_admin=user_data.is_admin,
+        name=user_data.name,
+        username=user_data.username,
+    )
+    db.add(new_user)
+    db.commit()
+    backgroud_task.add_task(send_email, user_data.email, "test_message")
+    return UserNoPassword.model_validate(new_user)

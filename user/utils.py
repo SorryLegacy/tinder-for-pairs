@@ -1,3 +1,5 @@
+import random
+import string
 import hashlib
 from typing import Union, Any
 from datetime import datetime, timedelta
@@ -51,3 +53,12 @@ def create_refresh_token(subject: Union[str, Any], expires_delta: int = None) ->
     to_encode = {"exp": expires_delta, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.JWT_REFRESH_KEY, settings.ALGORITHM)
     return encoded_jwt
+
+
+def generate_random_string(length: int = 16) -> str:
+    symbols = string.ascii_letters + string.digits
+    return "".join(random.choice(symbols) for _ in range(length))
+
+
+def send_email(email: str, message: str = "") -> None:
+    print(email)

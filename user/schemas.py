@@ -1,27 +1,43 @@
-from typing import Optional
+from typing import Optional, Sequence
 from datetime import datetime
 
 from fastapi import HTTPException, status
-from pydantic import BaseModel, model_validator, field_validator, ConfigDict
+from pydantic import (
+    BaseModel,
+    model_validator,
+    field_validator,
+    ConfigDict,
+    Field,
+    EmailStr,
+)
 
 from .utils import sha256_hash
 from services.schemas import BaseShemasUUID
 
 
 class UserAuth(BaseModel):
-    username: str
+    login: str
     password: str
 
     @field_validator("password")
     def check_password_first(cls, password: str) -> str:
         if len(password) < 3:
             raise ValueError("Password must be greater than 3 symbols")
-        return sha256_hash(password)
+        return password
 
 
-class UserRegister(UserAuth):
+class UserRegister(BaseModel):
     name: str
+    username: Optional[str]
+    email: Optional[str]
+    password: str
     confirm_password: Optional[str] = None
+
+    @field_validator("password")
+    def check_password_first(cls, password: str) -> str:
+        if len(password) < 3:
+            raise ValueError("Password must be greater than 3 symbols")
+        return sha256_hash(password)
 
     @model_validator(mode="after")
     def check_password(cls, values: dict) -> dict:
@@ -44,12 +60,22 @@ class UserNoPassword(BaseShemasUUID):
     model_config = ConfigDict(from_attributes=True)
 
     name: str
-    username: str
+    username: Optional[str]
     date_created: datetime
+    is_admin: bool
+    email: Optional[str]
 
 
-class UserDB(UserNoPassword):
-    password: str
+class UserCreateByAdmin(BaseModel):
+    name: str
+    username: Optional[str]
+    is_admin: bool = Field(default=False)
+    email: EmailStr
+
+
+class ListUsers(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    users: Sequence[UserNoPassword]
 
 
 class SignaturePayload(BaseModel):
