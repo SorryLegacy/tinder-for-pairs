@@ -1,11 +1,14 @@
+import base64
 import random
 import string
 import hashlib
 from typing import Union, Any
 from datetime import datetime, timedelta
+from urllib.parse import urljoin
 
 from config import settings
 
+import httpx
 from jose import jwt
 
 
@@ -28,7 +31,7 @@ def create_access_token(object: Union[str, Any], expires_delta: int = None) -> s
     Create JWT token for user
     """
     if expires_delta:
-        expires_delta = datetime.utcnow() + expires_delta
+        expires_delta = datetime.utcnow() + timedelta(minutes=expires_delta)
     else:
         expires_delta = datetime.utcnow() + timedelta(
             minutes=int(settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -60,5 +63,85 @@ def generate_random_string(length: int = 16) -> str:
     return "".join(random.choice(symbols) for _ in range(length))
 
 
-def send_email(email: str, message: str = "") -> None:
-    print(email)
+def send_email(
+    email: str, message: str = "", subject: Union[str, None] = None
+) -> httpx.Response:
+    if settings.SEND_EMAIL:
+        SendPulseEmailService(message=message, to=email, subject=subject).execute()
+
+
+class SendPulseEmailService:
+    """
+    Class to send email
+    """
+
+    def __init__(
+        self, message: str, subject: Union[str, None], to: list[dict], html: str = ""
+    ) -> None:
+        self.message = message
+        self.html = base64.b64encode(html.encode() or f"<p>{message}</p>".encode())
+        self.url = "https://api.sendpulse.com/"
+        self.subject = subject or "Restore password"
+        self.headers = {
+            "Authorization": f"Bearer {settings.SENDPULSE_API_ID}:{settings.SENDPULSE_API_SECRET}"
+        }
+        self.email_from = {"name": "Time Blend", "email": "TimeBlend@email.com"}
+        self.to = to
+        self.client = self._create_httpx_client()
+
+    def execute(self) -> httpx.Response:
+        """
+        Send message to
+        """
+        self._auth_in_service()
+        data = self._prepare__email_request()
+        url = urljoin(self.url, "smtp/emails")
+        response = self.client.post(url=url, json=data)
+        if response.is_error:
+            print("error in response")
+        print(response.json())
+        self.client.close()
+
+    def _prepare__email_request(self) -> dict:
+        return {
+            "email": {
+                "html": self.html.decode(),
+                "text": self.message,
+                "subject": self.subject,
+                "from": self.email_from,
+                "to": self.to,
+            }
+        }
+
+    def _auth_in_service(self) -> None:
+        url = urljoin(self.url, "/oauth/access_token")
+        data = {
+            "grant_type": "client_credentials",
+            "client_id": settings.SENDPULSE_API_ID,
+            "client_secret": settings.SENDPULSE_API_SECRET,
+        }
+        response = self.client.post(url=url, json=data)
+        if response.is_success:
+            data = {"Authorization": f'Bearer {response.json().get("access_token")}'}
+            self.client.headers.update(data)
+
+    @staticmethod
+    def _create_httpx_client() -> httpx.Client:
+        """
+        Create client with logging
+        """
+
+        def log_request(request):
+            print(
+                f"Request event hook: {request.method} {request.url} - Waiting for response"
+            )
+
+        def log_response(response):
+            request = response.request
+            print(
+                f"Response event hook: {request.method} {request.url} - Status {response.status_code}"
+            )
+
+        return httpx.Client(
+            event_hooks={"request": [log_request], "response": [log_response]}
+        )

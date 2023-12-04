@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: str
     REFRESH_TOKEN_EXPIRE_MINUTES: str
+    SENDPULSE_API_ID: str
+    SENDPULSE_API_SECRET: str
+    SEND_EMAIL: bool
 
     class Config:
         env_file = "./.env"

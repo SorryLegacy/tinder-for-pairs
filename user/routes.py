@@ -1,3 +1,5 @@
+from urllib.parse import urljoin
+
 from config import settings
 from services.database import db_depends
 
@@ -18,6 +20,7 @@ from .schemas import (
     SignaturePayload,
     ListUsers,
     UserCreateByAdmin,
+    ResetPassword,
 )
 from .deps import get_current_user, admin_only, verify_token
 
@@ -158,6 +161,7 @@ async def create_user_admin(
     user_data: UserCreateByAdmin,
     db: db_depends,
     backgroud_task: BackgroundTasks,
+    request: Request,
     user: UserNoPassword = Depends(admin_only),
 ) -> UserNoPassword:
     query = select(
@@ -179,6 +183,33 @@ async def create_user_admin(
         username=user_data.username,
     )
     db.add(new_user)
+    access_token = create_access_token(user_data.email, 3600)
+    email_message = urljoin(str(request.base_url), f"/restore-password/{access_token}")
+    print(email_message)
+    backgroud_task.add_task(send_email, user_data.email, email_message)
     db.commit()
-    backgroud_task.add_task(send_email, user_data.email, "test_message")
     return UserNoPassword.model_validate(new_user)
+
+
+@router.post("/restore-password/{jwt_string}", response_model=bool)
+async def restore_password(
+    db: db_depends, jwt_string: str, user_password: ResetPassword
+):
+    try:
+        payload = jwt.decode(
+            jwt_string, settings.JWT_SECRET_KEY, algorithms=settings.ALGORITHM
+        )
+        signature = SignaturePayload(**payload)
+    except (JWTError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User is not authenticated"
+        )
+    else:
+        query_user = select(User).where(User.email == signature.sub)
+        if user := db.execute(query_user).scalar():
+            user.password = user_password.password
+            db.commit()
+            return Response(status_code=status.HTTP_200_OK)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User is not authenticated"
+        )

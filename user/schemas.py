@@ -96,3 +96,15 @@ class SignaturePayload(BaseModel):
 class TokenResposnse(BaseModel):
     access_token: str
     refresh_token: str
+
+
+class ResetPassword(BaseModel):
+    password: str
+    confirm_password: str
+
+    @model_validator(mode="after")
+    def compare_password(cls, values: dict) -> dict:
+        if values.password == values.confirm_password:
+            values.password = sha256_hash(values.password)
+            return values
+        raise ValueError("Provides diffrent passwords")
