@@ -12,6 +12,8 @@ fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 
+config.set_main_option("sqlalchemy.url", POSTGRES_URL)
+
 
 def run_migrations_offline():
     context.configure(

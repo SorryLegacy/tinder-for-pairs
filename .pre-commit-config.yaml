@@ -5,12 +5,15 @@ repos:
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
+        exclude: migration/
 -   repo: https://github.com/psf/black
     rev: 22.10.0
     hooks:
     -   id: black
+        exclude: migration/
 -   repo: https://github.com/pycqa/flake8
     rev: '9fcb6db8adc8587d0e36a097bb777cc23e9d84b3'
     hooks:
     -   id: flake8
+        exclude: migration/
         args: [--max-line-length=120]
