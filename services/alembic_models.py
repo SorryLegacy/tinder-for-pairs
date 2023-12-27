@@ -1,2 +1,4 @@
-from .database import Base  # noqa
-from user.models import *  # noqa
+# TODO need to refactor this
+from .database import Base
+from user.models import *
+from match.models import *

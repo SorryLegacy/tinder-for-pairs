@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tinder"
-version = "0.1.0"
+version = "0.0.2"
 description = ""
 authors = ["Alex Remnev <alexremnev2@gmail.com>"]
 readme = "README.md"
@@ -22,6 +22,7 @@ httpx = "^0.25.2"
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.4.0"
 flake8 = "^6.1.0"
+fastapi-shell = "^0.1.3"
 
 [build-system]
 requires = ["poetry-core"]

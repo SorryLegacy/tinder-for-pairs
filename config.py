@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     SENDPULSE_API_ID: str
     SENDPULSE_API_SECRET: str
     SEND_EMAIL: bool
+    KINOPOISK_TOKEN: str
 
     class Config:
         env_file = "./.env"

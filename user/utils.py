@@ -63,9 +63,7 @@ def generate_random_string(length: int = 16) -> str:
     return "".join(random.choice(symbols) for _ in range(length))
 
 
-def send_email(
-    email: str, message: str = "", subject: Union[str, None] = None
-) -> httpx.Response:
+def send_email(email: str, message: str = "", subject: Union[str, None] = None) -> None:
     if settings.SEND_EMAIL:
         SendPulseEmailService(message=message, to=email, subject=subject).execute()
 
@@ -89,7 +87,7 @@ class SendPulseEmailService:
         self.to = to
         self.client = self._create_httpx_client()
 
-    def execute(self) -> httpx.Response:
+    def execute(self) -> None:
         """
         Send message to
         """
@@ -132,14 +130,12 @@ class SendPulseEmailService:
         """
 
         def log_request(request):
-            print(
-                f"Request event hook: {request.method} {request.url} - Waiting for response"
-            )
+            print(f"Request : {request.method} {request.url} - Waiting for response")
 
         def log_response(response):
             request = response.request
             print(
-                f"Response event hook: {request.method} {request.url} - Status {response.status_code}"
+                f"Response : {request.method} {request.url} - Status {response.status_code}"
             )
 
         return httpx.Client(
