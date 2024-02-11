@@ -7,3 +7,12 @@ from pydantic import BaseModel
 class BaseShemasUUID(BaseModel):
     uuid: UUID
     date_created: datetime
+
+
+class ServiceHealthCheck(BaseModel):
+    """
+    HealthCheck response
+    """
+
+    service: str
+    database: str

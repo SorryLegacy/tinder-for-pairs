@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 from urllib.parse import urljoin
 
 from config import settings
+from services.utils import BaseAPIHttpxClass
 
-import httpx
 from jose import jwt
 
 
@@ -68,7 +68,7 @@ def send_email(email: str, message: str = "", subject: Union[str, None] = None) 
         SendPulseEmailService(message=message, to=email, subject=subject).execute()
 
 
-class SendPulseEmailService:
+class SendPulseEmailService(BaseAPIHttpxClass):
     """
     Class to send email
     """
@@ -76,6 +76,7 @@ class SendPulseEmailService:
     def __init__(
         self, message: str, subject: Union[str, None], to: list[dict], html: str = ""
     ) -> None:
+        super().__init__()
         self.message = message
         self.html = base64.b64encode(html.encode() or f"<p>{message}</p>".encode())
         self.url = "https://api.sendpulse.com/"
@@ -85,7 +86,6 @@ class SendPulseEmailService:
         }
         self.email_from = {"name": "Time Blend", "email": "TimeBlend@email.com"}
         self.to = to
-        self.client = self._create_httpx_client()
 
     def execute(self) -> None:
         """
@@ -97,7 +97,6 @@ class SendPulseEmailService:
         response = self.client.post(url=url, json=data)
         if response.is_error:
             print("error in response")
-        print(response.json())
         self.client.close()
 
     def _prepare__email_request(self) -> dict:
@@ -122,22 +121,3 @@ class SendPulseEmailService:
         if response.is_success:
             data = {"Authorization": f'Bearer {response.json().get("access_token")}'}
             self.client.headers.update(data)
-
-    @staticmethod
-    def _create_httpx_client() -> httpx.Client:
-        """
-        Create client with logging
-        """
-
-        def log_request(request):
-            print(f"Request : {request.method} {request.url} - Waiting for response")
-
-        def log_response(response):
-            request = response.request
-            print(
-                f"Response : {request.method} {request.url} - Status {response.status_code}"
-            )
-
-        return httpx.Client(
-            event_hooks={"request": [log_request], "response": [log_response]}
-        )
