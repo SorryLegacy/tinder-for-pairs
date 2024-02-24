@@ -4,7 +4,7 @@ from alembic import context
 
 from services.database import POSTGRES_URL, engine
 
-from services.alembic_models import Base
+from services import Base
 
 config = context.config
 fileConfig(config.config_file_name)

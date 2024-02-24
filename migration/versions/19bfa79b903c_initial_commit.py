@@ -1,17 +1,17 @@
-"""Added User Table;Add match table
+"""initial commit
 
-Revision ID: cee3da0e127c
+Revision ID: 19bfa79b903c
 Revises: 
-Create Date: 2023-12-27 17:01:56.367486
+Create Date: 2024-02-24 13:51:11.507624
 
 """
-import sqlalchemy_utils
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+import sqlalchemy_utils
 
 # revision identifiers, used by Alembic.
-revision = 'cee3da0e127c'
+revision = '19bfa79b903c'
 down_revision = None
 branch_labels = None
 depends_on = None

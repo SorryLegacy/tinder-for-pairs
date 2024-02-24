@@ -1,7 +1,6 @@
-import uvicorn
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from services.create_router import create_routes
 
 
@@ -9,6 +8,14 @@ app = FastAPI(
     title="Tinder app for pairs",
     version="0.0.1",
 )
+
+
+@app.get("/")
+async def temporary_route():
+    """
+    Temporary view to redirect on docs page
+    """
+    return RedirectResponse("/docs")
 
 
 @app.exception_handler(RequestValidationError)
@@ -26,7 +33,3 @@ async def validation_exception_handler(request, exc):
 
 
 app.include_router(create_routes())
-
-
-if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8888, reload=True)
