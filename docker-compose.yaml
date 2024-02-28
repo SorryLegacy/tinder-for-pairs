@@ -1,0 +1,24 @@
+version: "2.1"
+services:
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 5005:5005
+
+  db:
+    image: postgres:15
+    container_name: PostgresContainer
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=apulaz
+      - POSTGRES_DB=tinder
+    ports:
+      - '5435:5432'
+    volumes:
+    - postgres_db:/var/lib/postgresql/data
+
+volumes:
+  postgres_db:
+    driver: local # Probably temporary
