@@ -10,10 +10,8 @@ services:
   db:
     image: postgres:15
     container_name: PostgresContainer
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=apulaz
-      - POSTGRES_DB=tinder
+    env_file:
+      - ./.env
     ports:
       - '5435:5432'
     volumes:
